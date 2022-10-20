@@ -156,9 +156,14 @@ if __name__ == '__main__':
         img = Image.open(BytesIO(response.content))
         img = img.convert('RGB')
     elif os.path.isfile(args.image_path):
-        with open(args.image_path, 'rb') as f:
-            img = Image.open(f)
+        try:
+            arr = np.load(args.image_path).T
+            img = Image.fromarray(arr)
             img = img.convert('RGB')
+        except:
+            with open(args.image_path, 'rb') as f:
+                img = Image.open(f)
+                img = img.convert('RGB')
     else:
         print(f"Provided image path {args.image_path} is non valid.")
         sys.exit(1)
@@ -175,6 +180,9 @@ if __name__ == '__main__':
 
     w_featmap = img.shape[-2] // args.patch_size
     h_featmap = img.shape[-1] // args.patch_size
+
+    import pdb
+    pdb.set_trace()
 
     attentions = model.get_last_selfattention(img.to(device))
 
