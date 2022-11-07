@@ -144,7 +144,14 @@ def train_dino(args):
     )
     # dataset = datasets.ImageFolder(args.data_path, transform=transform)
     from alexdata import AlexData
-    dataset = AlexData(args.data_path, transform)
+    from bibekdata import GlacierDataset
+    import pathlib
+    if 'brain' in args.data_path:
+        dataset = AlexData(args.data_path, transform)
+    else:
+        # ["B1", "B2", "B3", "B4", "B5", "B6_VCID1", "B6_VCID2", "B7", "elevation", "slope"]
+        args.data_path = pathlib.Path(args.data_path)
+        dataset = GlacierDataset(args.data_path, use_channels=[0, 1, 2, 3, 4, 5, 6, 7, 8], normalize='mean-std', use_physics=False, transforms=transform)
     sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
     data_loader = torch.utils.data.DataLoader(
         dataset,
@@ -430,7 +437,7 @@ class DataAugmentationDINO(object):
         ])
         normalize = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
         # first global crop

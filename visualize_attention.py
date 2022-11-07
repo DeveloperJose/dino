@@ -157,9 +157,13 @@ if __name__ == '__main__':
         img = img.convert('RGB')
     elif os.path.isfile(args.image_path):
         try:
-            arr = np.load(args.image_path).T
-            img = Image.fromarray(arr)
-            img = img.convert('RGB')
+            arr = np.load(args.image_path)
+            # if 'brain' in args.image_path:
+            #     arr = arr.T
+            # elif 'HKH' in args.image_path:
+            channels = [2, 1, 0]
+            arr = arr[:, :, channels].astype(np.uint8)
+            img = Image.fromarray(arr, 'RGB')
         except:
             with open(args.image_path, 'rb') as f:
                 img = Image.open(f)
@@ -181,12 +185,15 @@ if __name__ == '__main__':
     w_featmap = img.shape[-2] // args.patch_size
     h_featmap = img.shape[-1] // args.patch_size
 
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     attentions = model.get_last_selfattention(img.to(device))
 
     nh = attentions.shape[1] # number of head
+
+    # import pdb
+    # pdb.set_trace()
 
     # we keep only the output patch attention
     attentions = attentions[0, :, 0, 1:].reshape(nh, -1)
@@ -202,11 +209,12 @@ if __name__ == '__main__':
             th_attn[head] = th_attn[head][idx2[head]]
         th_attn = th_attn.reshape(nh, w_featmap, h_featmap).float()
         # interpolate
-        th_attn = nn.functional.interpolate(th_attn.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")[0].cpu().numpy()
+        th_attn = nn.functional.interpolate(th_attn.unsqueeze(0), scale_factor=args.patch_size, mode="bilinear")[0].cpu().numpy()
 
     attentions = attentions.reshape(nh, w_featmap, h_featmap)
-    attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")[0].cpu().numpy()
+    attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=args.patch_size, mode="bilinear")[0].cpu().numpy()
 
+    # pdb.set_trace()
     # save attentions heatmaps
     os.makedirs(args.output_dir, exist_ok=True)
     torchvision.utils.save_image(torchvision.utils.make_grid(img, normalize=True, scale_each=True), os.path.join(args.output_dir, "img.png"))
